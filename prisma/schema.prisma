@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum TransactionStatus {
+  PENDING
+  WAITING_VERIFICATION
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model TrashType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slot        Int      @default(0)
+  pricePerKg  Float    @default(0)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model Region {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slot      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model WeightSetting {
+  id        Int      @id @default(1)
+  minWeight Float    @default(0.5)
+  maxWeight Float    @default(50.0)
+  updatedAt DateTime @updatedAt
+}
+
+model TrashPhoto {
+  id          String       @id @default(uuid())
+  imageUrl    String       @db.Text
+  uploadedAt  DateTime     @default(now())
+  transaction Transaction?
+}
+
+model Transaction {
+  id                String      @id @default(uuid())
+  transactionNumber String      @unique
+  userId            String
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trashTypeId       String
+  trashType         TrashType   @relation(fields: [trashTypeId], references: [id], onDelete: Restrict)
+  regionId          String
+  region            Region      @relation(fields: [regionId], references: [id], onDelete: Restrict)
+  trashPhotoId      String?     @unique
+  trashPhoto        TrashPhoto? @relation(fields: [trashPhotoId], references: [id], onDelete: Cascade)
+  weight            Float
+  totalPrice        Float      @default(0)
+  paymentMethod     String?
+  paymentStatus     PaymentStatus @default(UNPAID)
+  status            TransactionStatus @default(PENDING)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
